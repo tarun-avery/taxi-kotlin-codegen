@@ -32,7 +32,7 @@ class WireLayoutTest {
                 source.replace("@Field(id = 2)", "@Field(id = 1)"),
                 source.replace("schemaId = 1", "schemaId = 65535"),
                 source.replace("@Field(id = 2)", ""),
-                source.replace("price: Price", "price: Price?"),
+                source.replace("version = 0", "version = -1"),
             )
         invalid.forEach {
             val result = plan(it)

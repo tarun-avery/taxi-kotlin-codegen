@@ -1,6 +1,6 @@
 # Implementation plan
 
-Milestones 1–4 are implemented. Milestones 5–7 are planned.
+Milestones 1–5 are implemented. Milestones 6–7 are planned.
 See [compiler integration](compiler-integration.md) for the current scope.
 
 ## Objective

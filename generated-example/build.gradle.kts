@@ -8,6 +8,7 @@ kotlin {
     jvmToolchain(25)
     sourceSets.main {
         kotlin.srcDir(layout.buildDirectory.dir("generated/sources/taxi/main/kotlin"))
+        kotlin.srcDir(layout.buildDirectory.dir("generated/sources/evolution/main/kotlin"))
     }
 }
 
@@ -33,7 +34,7 @@ dependencies {
 }
 
 tasks.compileKotlin {
-    dependsOn(rootProject.tasks.named("generatePojos"))
+    dependsOn(rootProject.tasks.named("generatePojos"), rootProject.tasks.named("generateEvolution"))
 }
 
 tasks.test {

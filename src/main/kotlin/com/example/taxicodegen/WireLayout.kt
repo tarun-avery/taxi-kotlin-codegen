@@ -4,6 +4,7 @@ data class WireField(
     val field: DomainField,
     val id: Int,
     val offset: Int,
+    val sinceVersion: Int = 0,
 )
 
 data class WireMessage(
@@ -51,19 +52,27 @@ class WireLayoutPlanner {
         val messages =
             schema.messages.map { model ->
                 val metadata = annotation(model.annotations, "Message", model.position)
+                val version = number(metadata, "version", model.position)
                 val fields =
                     model.fields.mapIndexed { index, field ->
-                        if (field.nullable) errors += Diagnostic(field.position, "Nullable SBE fields are not supported yet.")
+                        val since = field.annotations.filter { it.name.substringAfterLast('.') == "Since" }
+                        if (since.size > 1) errors += Diagnostic(field.position, "Duplicate @Since annotation.")
+                        val sinceVersion = if (since.isEmpty()) 0 else number(since.first(), "version", field.position)
+                        if (sinceVersion > version) errors += Diagnostic(field.position, "Field version exceeds schema version.")
+                        if (sinceVersion > 0 && !field.nullable) errors += Diagnostic(field.position, "Added fields must be optional.")
                         val fieldMetadata = annotation(field.annotations, "Field", field.position)
-                        WireField(field, number(fieldMetadata, "id", field.position), index * 8)
+                        WireField(field, number(fieldMetadata, "id", field.position), index * 8, sinceVersion)
                     }
+                if (fields.zipWithNext().any { (a, b) -> a.sinceVersion > b.sinceVersion }) {
+                    errors += Diagnostic(model.position, "Versioned fields must be appended in version order.")
+                }
                 if (fields.map { it.id }.distinct().size != fields.size) errors += Diagnostic(model.position, "Duplicate SBE field IDs.")
                 if (fields.size * 8 > 65534) errors += Diagnostic(model.position, "Root block exceeds uint16 length.")
                 WireMessage(
                     model,
                     number(metadata, "id", model.position),
                     number(metadata, "schemaId", model.position),
-                    number(metadata, "version", model.position),
+                    version,
                     fields,
                 )
             }

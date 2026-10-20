@@ -4,10 +4,10 @@ A learning project to generate Kotlin domain objects, buffer-backed flyweights,
 and SBE-compatible codecs from Taxi schemas. The aim is to compare ownership,
 allocation, serialization, and schema evolution using the same domain definition.
 
-**Status:** milestones 1–4 implemented. Taxi generates Kotlin data classes,
+**Status:** milestones 1–5 implemented. Taxi generates Kotlin data classes,
 fixed-layout SBE encoders/decoders, and buffer-backed flyweights. The build
-compiles the generated Order example and checks its binary fixture. The Aeron IPC demo is runnable; schema evolution, richer types, and benchmarks
-are still planned.
+compiles the generated Order example and checks its binary fixture. The Aeron IPC demo and bidirectional version 0/1 compatibility tests run in the
+build. Richer types and benchmarks are still planned.
 
 ## Getting started
 
@@ -35,7 +35,7 @@ file, line, and column. The tool reads the schema without modifying it and write
 release repository as well as dependencies from Maven Central.
 
 Only simple Long fields (including semantic subtypes and nullable fields) are
-currently supported. POJO generation preserves nullability; the current SBE profile requires non-null
+currently supported. POJO generation preserves nullability; the SBE profile supports required and nullable
 Long fields. Message/field IDs and fixed layouts are validated. See
 [compiler integration](docs/compiler-integration.md) for scope and diagnostics.
 

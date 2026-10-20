@@ -15,12 +15,16 @@ class CodecGenerator {
         val namespace = model.name.substringBeforeLast('.', "")
         val header = if (namespace.isEmpty()) "" else "package ${namespace.split('.').joinToString(".") { "`$it`" }}"
         val fields = message.fields
+        val optionalDefaults =
+            fields.filter { it.field.nullable }.joinToString("\n") {
+                "        buffer.putLong(offset + ${it.offset}, Long.MIN_VALUE, ByteOrder.LITTLE_ENDIAN)"
+            }
         val setters =
             fields.joinToString("\n") { field ->
                 """
-                fun `${field.field.name}`(value: Long): ${name}Encoder {
+                fun `${field.field.name}`(value: Long${if (field.field.nullable) "?" else ""}): ${name}Encoder {
                     require(value != Long.MIN_VALUE) { "Reserved SBE null value" }
-                    buffer.putLong(offset + ${field.offset}, value, ByteOrder.LITTLE_ENDIAN)
+                    buffer.putLong(offset + ${field.offset}, ${if (field.field.nullable) "value ?: Long.MIN_VALUE" else "value"}, ByteOrder.LITTLE_ENDIAN)
                     return this
                 }
                 """.trimIndent()
@@ -28,16 +32,24 @@ class CodecGenerator {
         val getters =
             fields.joinToString("\n") { field ->
                 """
-                fun `${field.field.name}`(): Long {
+                fun `${field.field.name}`(): Long${if (field.field.nullable) "?" else ""} {
+                    ${if (field.sinceVersion > 0) "if (version < ${field.sinceVersion}) return null" else ""}
                     val value = buffer.getLong(offset + ${field.offset}, ByteOrder.LITTLE_ENDIAN)
-                    require(value != Long.MIN_VALUE) { "Required field contains SBE null" }
+                    ${if (field.field.nullable) "if (value == Long.MIN_VALUE) return null" else "require(value != Long.MIN_VALUE) { \"Required field contains SBE null\" }"}
                     return value
                 }
                 """.trimIndent()
             }
-        val properties = fields.joinToString("\n") { "    val `${it.field.name}`: Long get() = decoder.`${it.field.name}`()" }
+        val properties =
+            fields.joinToString("\n") {
+                "    val `${it.field.name}`: Long${if (it.field.nullable) "?" else ""} get() = decoder.`${it.field.name}`()"
+            }
         val copy = fields.joinToString(", ") { "`${it.field.name}`()" }
         val encode = fields.joinToString("\n") { "        `${it.field.name}`(value.`${it.field.name}`)" }
+        val lengthChecks =
+            fields.joinToString("\n") {
+                "        require(actingVersion < ${it.sinceVersion} || actingBlockLength >= ${it.offset + 8}) { \"Truncated versioned root block\" }"
+            }
         val content =
             """
 // Generated from Taxi. Do not edit.
@@ -55,6 +67,7 @@ class ${name}Encoder {
         buffer.boundsCheck(offset, BLOCK_LENGTH)
         this.buffer = buffer
         this.offset = offset
+$optionalDefaults
         return this
     }
 
@@ -85,13 +98,16 @@ $encode
 
 /** Borrows the buffer; callers own its lifetime and must serialize access. */
 class ${name}Decoder {
+    private var version = 0
     private lateinit var buffer: DirectBuffer
     private var offset = 0
 
     fun wrap(buffer: DirectBuffer, offset: Int, actingBlockLength: Int, actingVersion: Int): ${name}Decoder {
         require(actingVersion in 0..65534) { "Invalid schema version" }
-        require(actingBlockLength in ${message.blockLength}..65534) { "Invalid root block length" }
+        require(actingBlockLength in 0..65534) { "Invalid root block length" }
+$lengthChecks
         buffer.boundsCheck(offset, actingBlockLength)
+        this.version = actingVersion
         this.buffer = buffer
         this.offset = offset
         return this

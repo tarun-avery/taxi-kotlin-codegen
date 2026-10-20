@@ -7,8 +7,8 @@ All integers are little endian. The message header contains four uint16 fields:
 root block length, template ID, schema ID, and schema version. The header is eight
 bytes and is excluded from the root block length. IDs and versions use 0..65534;
 65535 is reserved. Fields use signed int64, with Long.MIN_VALUE reserved as null.
-The initial profile permits only required fields, so encoders and decoders reject
-that value. Fields follow declaration order; field IDs do not determine offsets.
+Nullable fields encode null using that sentinel. Required fields reject it, and
+callers cannot pass the sentinel as a non-null value. Fields follow declaration order; field IDs do not determine offsets.
 
 Order uses template 1, schema 1, version 0, with a 24-byte root block. Its body
 contains orderId at offset 0, price at 8, and quantity at 16. The reviewed fixture
@@ -42,3 +42,22 @@ and never committed. Agrona is pinned to 2.7.0. On JDK 25 its consumers need
 --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED, configured for Gradle tests.
 
 [FIX SBE specification](https://fixtrading.org/packages/simple-binary-encoding-technical-specification-final/)
+
+## Schema evolution
+
+`examples/order.taxi` is the preserved version 0 baseline. `examples/order-v1.taxi`
+adds nullable clientId as field 4 with @Since(version = 1), extending the block to
+32 bytes. Its Kotlin package differs so both generated readers can coexist in
+the test process; schema/template identity remains unchanged on the wire.
+
+SchemaCompatibility tests compare field IDs, names, encodings, nullability,
+offsets, and since-version metadata. Existing fields must remain unchanged; new
+fields must be appended, optional, and introduced in a newer version. Preserve
+baseline schemas when extending the generator. Changing a baseline defeats the
+compatibility check and requires explicit review.
+
+Readers validate the minimum block length for the received version and use
+actingVersion to return null for absent later fields. Old readers tolerate
+appended fixed fields. This does not yet claim compatibility for new groups or
+variable data. Encoders initialize optional fields to null when wrapped; callers
+must still populate every required field.
