@@ -1,4 +1,5 @@
 plugins {
+    application
     kotlin("jvm") version "2.4.21"
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
 }
@@ -26,6 +27,7 @@ ktlint {
 
 dependencies {
     implementation("org.agrona:agrona:2.7.0")
+    implementation("io.aeron:aeron-driver:1.53.3")
     testImplementation(kotlin("test-junit5"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
 }
@@ -37,4 +39,9 @@ tasks.compileKotlin {
 tasks.test {
     useJUnitPlatform()
     jvmArgs("--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED")
+}
+
+application {
+    mainClass.set("com.example.taxicodegen.AeronDemoKt")
+    applicationDefaultJvmArgs = listOf("--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED")
 }
