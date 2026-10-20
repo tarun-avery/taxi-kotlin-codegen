@@ -25,15 +25,15 @@ entities; scalar-level annotations are not propagated to fields in this mileston
 
 ## Supported scope
 
-- One input file with namespaces, simple domain models, and Long fields.
-- Semantic scalar subtypes of Long, including chains of inheritance.
-- Nullable fields, represented as metadata without a wire null encoding yet.
-- Model and field annotations, validated by Taxi when annotation types are declared.
+One UTF-8 file can declare models, Long/String semantic types, explicit numeric
+enums, composite fields, and arrays of fixed-layout models. Nullable Longs and
+enums are supported in binary codecs. Typed annotations are checked by Taxi.
+The adapter preserves these shapes; wire planners validate their supported layout
+combinations separately. Generic object-level nullability is not supported by codecs.
 
-Unsupported primitives, arrays, enums, nested object fields, model inheritance,
-computed/constrained fields, type extensions, functions, services, and queries are
-rejected. Broad Taxi language support is not claimed. Imports requiring external
-schema files and package resolution are outside the CLI's current single-file scope.
+Functions, services, queries, computed/constrained fields, model inheritance,
+type extensions, unsupported primitives, and primitive arrays are rejected.
+External package resolution is outside the current single-file CLI scope.
 
 ## Diagnostics and CLI
 

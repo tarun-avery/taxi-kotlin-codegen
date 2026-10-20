@@ -2,6 +2,11 @@ package com.example.taxicodegen
 
 class CodecGenerator {
     fun generate(schema: DomainSchema): GenerationResult {
+        val nameErrors = validateCodecNames(schema)
+        if (nameErrors.isNotEmpty()) return GenerationResult(emptyList(), nameErrors)
+        if (schema.messages.any { model -> model.fields.any { it.primitive != DomainPrimitive.LONG } }) {
+            return RichCodecGenerator().generate(schema)
+        }
         val pojos = PojoGenerator().generate(schema)
         if (pojos.diagnostics.isNotEmpty()) return pojos
         val plan = WireLayoutPlanner().plan(schema)
@@ -150,4 +155,22 @@ $properties
             content,
         )
     }
+}
+
+private fun validateCodecNames(schema: DomainSchema): List<Diagnostic> {
+    val errors = mutableListOf<Diagnostic>()
+    val reserved = setOf("buffer", "offset", "version", "decoder", "toPojo", "wrap", "wrapAndApplyHeader", "fromPojo", "encode")
+    schema.messages.forEach { model ->
+        model.fields.filter { it.name in reserved }.forEach {
+            errors += Diagnostic(it.position, "Field name ${it.name} is reserved by the codec API.")
+        }
+    }
+    val names =
+        schema.messages.flatMap { model ->
+            listOf("Pojo", "Encoder", "Decoder", "Flyweight").map { model.name + it }
+        } + schema.enums.map { it.name }
+    if (names.map { it.lowercase(java.util.Locale.ROOT) }.distinct().size != names.size) {
+        errors += Diagnostic(schema.messages.first().position, "Generated Kotlin type names collide.")
+    }
+    return errors
 }

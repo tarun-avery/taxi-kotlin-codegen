@@ -9,6 +9,7 @@ kotlin {
     sourceSets.main {
         kotlin.srcDir(layout.buildDirectory.dir("generated/sources/taxi/main/kotlin"))
         kotlin.srcDir(layout.buildDirectory.dir("generated/sources/evolution/main/kotlin"))
+        kotlin.srcDir(layout.buildDirectory.dir("generated/sources/rich/main/kotlin"))
     }
 }
 
@@ -34,7 +35,11 @@ dependencies {
 }
 
 tasks.compileKotlin {
-    dependsOn(rootProject.tasks.named("generatePojos"), rootProject.tasks.named("generateEvolution"))
+    dependsOn(
+        rootProject.tasks.named("generatePojos"),
+        rootProject.tasks.named("generateEvolution"),
+        rootProject.tasks.named("generateRich"),
+    )
 }
 
 tasks.test {

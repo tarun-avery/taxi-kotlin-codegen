@@ -61,3 +61,31 @@ actingVersion to return null for absent later fields. Old readers tolerate
 appended fixed fields. This does not yet claim compatibility for new groups or
 variable data. Encoders initialize optional fields to null when wrapped; callers
 must still populate every required field.
+
+## Rich version 0 profile
+
+`examples/trade.taxi` demonstrates numeric enums, a fixed Quote composite, a nullable
+client ID, a repeating group of fixed Leg records, and a UTF-8 note. Enums use
+explicit uint8 values 0..254; 255 means null only for optional enums. Unknown values
+are rejected. Composites concatenate fixed fields without implicit padding.
+
+Fixed fields must precede groups, and groups must precede variable data. Group
+dimensions are uint16 blockLength followed by uint16 numInGroup; counts are limited
+to 65534. UTF-8 data uses a uint32 byte length; this JVM implementation accepts only
+lengths up to Int.MAX_VALUE, further bounded by the supplied message length.
+Malformed UTF-8 is rejected when accessed as a String.
+
+Trade has a 33-byte fixed root, including its one-byte Side enum. Tests compare
+an 83-byte message with an independent JDK ByteBuffer fixture and test every
+truncated prefix. This profile supports multiple root groups/data fields but not
+nested variable groups, variable composites, recursive models, or rich schema
+evolution. The planner rejects those combinations rather than inventing a layout.
+
+Rich encoders expose `encode(buffer, offset, pojo): Int`, returning total message
+length. Decoders expose `wrap(buffer, offset, length)`. Fixed composites and group
+entries take a caller-owned reusable decoder target, e.g. `legs(index, legView)`.
+`legsCount` exposes the group size. A rich Flyweight is an alias of its Decoder;
+there is only one layout implementation. `note()` allocates a String;
+`copyNoteTo(target, offset)` copies bytes directly without constructing one.
+`toPojo()` deliberately allocates an owned object graph, including lists and
+nested records. Do not describe these materialization paths as allocation-free.

@@ -3,7 +3,9 @@ package com.example.taxicodegen
 import lang.taxi.Compiler
 import lang.taxi.types.Annotation
 import lang.taxi.types.AnnotationType
+import lang.taxi.types.ArrayType
 import lang.taxi.types.CompilationUnit
+import lang.taxi.types.EnumType
 import lang.taxi.types.ObjectType
 import lang.taxi.types.PrimitiveType
 import lang.taxi.types.SourceNames
@@ -43,6 +45,7 @@ class TaxiCompilerAdapter {
             .filter { function ->
                 function.compilationUnits.any { SourceNames.normalize(it.source.sourceName) == SourceNames.normalize(sourceName) }
             }.forEach { reject(it.compilationUnits.first(), "Function declarations are not supported.") }
+        val enums = mutableListOf<DomainEnum>()
         val messages =
             document.types
                 .filter { type ->
@@ -50,6 +53,18 @@ class TaxiCompilerAdapter {
                 }.sortedBy { it.qualifiedName }
                 .mapNotNull { type ->
                     if (type is AnnotationType || type is PrimitiveType) return@mapNotNull null
+                    if (type is EnumType) {
+                        val values = type.values.associate { it.name to (it.value as? Int ?: -1) }
+                        if (values.values.any { it !in 0..254 } || values.values.distinct().size != values.size) {
+                            reject(
+                                type.compilationUnits.first(),
+                                "Unsupported type ${type.qualifiedName}: enums need unique explicit uint8 values.",
+                            )
+                        } else {
+                            enums += DomainEnum(type.qualifiedName, values, type.compilationUnits.first().position())
+                        }
+                        return@mapNotNull null
+                    }
                     if (type !is ObjectType) {
                         reject(
                             type.compilationUnits.first(),
@@ -62,8 +77,8 @@ class TaxiCompilerAdapter {
                         reject(unit, "Expressions, partial types, and type extensions are not supported: ${type.qualifiedName}.")
                     }
                     if (type.isScalar && type.typeKind != TypeKind.Model) {
-                        if (type.basePrimitive != PrimitiveType.LONG) {
-                            reject(unit, "Only Long scalar types are supported: ${type.qualifiedName}.")
+                        if (type.basePrimitive !in setOf(PrimitiveType.LONG, PrimitiveType.STRING)) {
+                            reject(unit, "Only Long and String scalar types are supported: ${type.qualifiedName}.")
                         }
                         return@mapNotNull null
                     }
@@ -72,11 +87,35 @@ class TaxiCompilerAdapter {
                     }
                     val fields =
                         type.fields.mapNotNull { field ->
-                            if (field.type.basePrimitive != PrimitiveType.LONG || !field.type.isScalar) {
-                                reject(
-                                    field.compilationUnit,
-                                    "Field ${field.name} must resolve to Long; found ${field.type.qualifiedName}.",
-                                )
+                            val fieldType = field.type
+                            val kind =
+                                when {
+                                    fieldType is EnumType -> {
+                                        DomainPrimitive.ENUM
+                                    }
+
+                                    fieldType is ArrayType && fieldType.memberType is ObjectType && !fieldType.memberType.isScalar -> {
+                                        DomainPrimitive.GROUP
+                                    }
+
+                                    fieldType is ObjectType && !fieldType.isScalar -> {
+                                        DomainPrimitive.COMPOSITE
+                                    }
+
+                                    fieldType.basePrimitive == PrimitiveType.LONG -> {
+                                        DomainPrimitive.LONG
+                                    }
+
+                                    fieldType.basePrimitive == PrimitiveType.STRING -> {
+                                        DomainPrimitive.STRING
+                                    }
+
+                                    else -> {
+                                        null
+                                    }
+                                }
+                            if (kind == null) {
+                                reject(field.compilationUnit, "Unsupported field ${field.name}: ${fieldType.qualifiedName}.")
                                 return@mapNotNull null
                             }
                             if (field.accessor != null || field.constraints.isNotEmpty() || field.modifiers.isNotEmpty()) {
@@ -87,8 +126,8 @@ class TaxiCompilerAdapter {
                             }
                             DomainField(
                                 field.name,
-                                field.type.qualifiedName,
-                                DomainPrimitive.LONG,
+                                if (fieldType is ArrayType) fieldType.memberType.qualifiedName else fieldType.qualifiedName,
+                                kind,
                                 field.nullable,
                                 field.annotations.map { it.toDomain() },
                                 field.compilationUnit.position(),
@@ -100,7 +139,7 @@ class TaxiCompilerAdapter {
             diagnostics += Diagnostic(SourcePosition(sourceName, 1, 1), "Declare at least one domain model.")
         }
         return CompilationResult(
-            if (diagnostics.any { it.severity == "ERROR" }) null else DomainSchema(messages),
+            if (diagnostics.any { it.severity == "ERROR" }) null else DomainSchema(messages, enums),
             diagnostics,
         )
     }

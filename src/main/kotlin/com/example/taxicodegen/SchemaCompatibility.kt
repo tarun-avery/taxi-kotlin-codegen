@@ -6,6 +6,9 @@ class SchemaCompatibility {
         previous: DomainSchema,
         current: DomainSchema,
     ): List<Diagnostic> {
+        if ((previous.messages + current.messages).any { model -> model.fields.any { it.primitive != DomainPrimitive.LONG } }) {
+            return listOf(Diagnostic(current.messages.first().position, "Rich schema compatibility is not supported yet."))
+        }
         val old = WireLayoutPlanner().plan(previous)
         val new = WireLayoutPlanner().plan(current)
         val errors = (old.diagnostics + new.diagnostics).toMutableList()

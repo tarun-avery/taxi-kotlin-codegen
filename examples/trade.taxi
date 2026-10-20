@@ -1,0 +1,32 @@
+namespace trading.rich
+
+annotation Message { id: Int schemaId: Int version: Int }
+annotation Field { id: Int }
+
+type TradeId inherits Long
+type Price inherits Long
+type Quantity inherits Long
+type ClientId inherits Long
+type Note inherits String
+
+enum Side { Buy(1), Sell(2) }
+
+model Quote {
+    @Field(id = 1) price: Price
+    @Field(id = 2) quantity: Quantity
+}
+
+model Leg {
+    @Field(id = 1) id: TradeId
+    @Field(id = 2) quantity: Quantity
+}
+
+@Message(id = 2, schemaId = 1, version = 0)
+model Trade {
+    @Field(id = 1) id: TradeId
+    @Field(id = 2) side: Side?
+    @Field(id = 3) quote: Quote
+    @Field(id = 4) clientId: ClientId?
+    @Field(id = 5) legs: Leg[]
+    @Field(id = 6) note: Note
+}

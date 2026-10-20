@@ -4,10 +4,11 @@ A learning project to generate Kotlin domain objects, buffer-backed flyweights,
 and SBE-compatible codecs from Taxi schemas. The aim is to compare ownership,
 allocation, serialization, and schema evolution using the same domain definition.
 
-**Status:** milestones 1–5 implemented. Taxi generates Kotlin data classes,
+**Status:** milestones 1–6 implemented. Taxi generates Kotlin data classes,
 fixed-layout SBE encoders/decoders, and buffer-backed flyweights. The build
 compiles the generated Order example and checks its binary fixture. The Aeron IPC demo and bidirectional version 0/1 compatibility tests run in the
-build. Richer types and benchmarks are still planned.
+build. Enums, fixed composites, fixed-entry groups, and UTF-8 data are supported;
+benchmarks are still planned.
 
 ## Getting started
 
@@ -34,10 +35,11 @@ units of one ten-thousandth of a currency unit.
 file, line, and column. The tool reads the schema without modifying it and writes sources only when `--output` is supplied. The first build downloads Taxi from its official Orbital
 release repository as well as dependencies from Maven Central.
 
-Only simple Long fields (including semantic subtypes and nullable fields) are
-currently supported. POJO generation preserves nullability; the SBE profile supports required and nullable
-Long fields. Message/field IDs and fixed layouts are validated. See
-[compiler integration](docs/compiler-integration.md) for scope and diagnostics.
+Supported data includes Long fields and semantic subtypes, nullable Longs/enums,
+explicit numeric enums, fixed composites, fixed-entry groups, and UTF-8 strings.
+The rich-codec profile is version 0 only; fixed Long messages support append-only
+schema evolution. Unsupported constructs fail explicitly. See
+[compiler integration](docs/compiler-integration.md) and [wire profile](docs/wire-profile.md).
 
 See [the implementation plan](docs/plan.md) for milestones and the intended
 Order example. Contributors should read [AGENTS.md](AGENTS.md), reproduce the
@@ -45,7 +47,7 @@ build, and follow its milestone commit workflow. For project
 questions or proposed changes, open a repository issue.
 
 Generated example sources live under `generated-example/build/generated/sources/taxi/main/kotlin`.
-The `generatePojos` task (now also generating codecs) replaces that generated directory when its inputs change;
+The `generatePojos`, `generateEvolution`, and `generateRich` tasks replace their generated directories when its inputs change;
 never edit it by hand. `clean` removes build output. The CLI also accepts
 `--output <directory>` to write sources elsewhere; it overwrites matching generated
 filenames but does not remove stale files. Kotlin keywords are escaped, nullable

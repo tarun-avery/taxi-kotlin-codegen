@@ -37,17 +37,33 @@ class PojoGenerator {
                         appendLine()
                         appendLine("data class $className(")
                         message.fields.forEach { field ->
-                            val type =
-                                when (field.primitive) {
-                                    DomainPrimitive.LONG -> "Long"
-                                }
+                            val type = field.kotlinType()
                             appendLine("    val ${identifier(field.name)}: $type${if (field.nullable) "?" else ""},")
                         }
                         appendLine(")")
                     }
                 GeneratedSource((packageParts + "$className.kt").joinToString("/"), content)
             }
-        val collisions = sources.groupBy { it.relativePath.lowercase(java.util.Locale.ROOT) }.values.filter { it.size > 1 }
+        val enumSources =
+            schema.enums.mapNotNull { definition ->
+                if ((definition.name.split('.') + definition.values.keys).any { !IDENTIFIER.matches(it) }) {
+                    diagnostics += Diagnostic(definition.position, "Enum names must be ASCII identifiers.")
+                    return@mapNotNull null
+                }
+                val namespace = definition.name.substringBeforeLast('.', "")
+                val name = definition.name.substringAfterLast('.')
+                val content =
+                    buildString {
+                        if (namespace.isNotEmpty()) appendLine("package ${namespace.split('.').joinToString(".") { identifier(it) }}")
+                        appendLine()
+                        appendLine("enum class ${identifier(name)}(val wireValue: Int) {")
+                        definition.values.forEach { (key, code) -> appendLine("    ${identifier(key)}($code),") }
+                        appendLine("}")
+                    }
+                GeneratedSource(definition.name.replace('.', '/') + ".kt", content)
+            }
+        val allSources = sources + enumSources
+        val collisions = allSources.groupBy { it.relativePath.lowercase(java.util.Locale.ROOT) }.values.filter { it.size > 1 }
         if (collisions.isNotEmpty()) {
             diagnostics +=
                 Diagnostic(
@@ -55,7 +71,7 @@ class PojoGenerator {
                     "Generated file names collide on case-insensitive filesystems.",
                 )
         }
-        return GenerationResult(if (diagnostics.isEmpty()) sources else emptyList(), diagnostics)
+        return GenerationResult(if (diagnostics.isEmpty()) allSources else emptyList(), diagnostics)
     }
 
     private fun identifier(value: String) = if (value in KEYWORDS) "`$value`" else value

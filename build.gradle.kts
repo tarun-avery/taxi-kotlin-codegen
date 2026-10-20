@@ -65,3 +65,14 @@ val generateEvolution by tasks.registering(JavaExec::class) {
     args("examples/order-v1.taxi", "--codecs", evolutionSources.get().asFile.absolutePath)
     doFirst { delete(evolutionSources) }
 }
+
+val richSources = project(":generated-example").layout.buildDirectory.dir("generated/sources/rich/main/kotlin")
+val generateRich by tasks.registering(JavaExec::class) {
+    group = "code generation"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("com.example.taxicodegen.MainKt")
+    inputs.file("examples/trade.taxi")
+    outputs.dir(richSources)
+    args("examples/trade.taxi", "--codecs", richSources.get().asFile.absolutePath)
+    doFirst { delete(richSources) }
+}

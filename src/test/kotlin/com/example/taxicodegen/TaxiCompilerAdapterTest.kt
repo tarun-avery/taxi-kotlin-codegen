@@ -86,7 +86,7 @@ class TaxiCompilerAdapterTest {
 
     @Test
     fun `unsupported fields fail rather than disappear`() {
-        for (fieldType in listOf("String", "Int", "Long[]")) {
+        for (fieldType in listOf("Decimal", "Int", "Long[]")) {
             val result = compiler.compile("model Order { id: Long\n unsupported: $fieldType }", "unsupported.taxi")
             assertNull(result.schema, fieldType)
             assertTrue(result.diagnostics.any { it.message.contains("unsupported") && it.position.line == 2 })

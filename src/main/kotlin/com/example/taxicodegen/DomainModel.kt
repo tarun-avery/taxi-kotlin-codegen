@@ -19,7 +19,7 @@ data class DomainAnnotation(
     val parameters: Map<String, Any?>,
 )
 
-enum class DomainPrimitive { LONG }
+enum class DomainPrimitive { LONG, STRING, ENUM, COMPOSITE, GROUP }
 
 data class DomainField(
     val name: String,
@@ -39,9 +39,25 @@ data class DomainMessage(
 
 data class DomainSchema(
     val messages: List<DomainMessage>,
+    val enums: List<DomainEnum> = emptyList(),
 )
 
 data class CompilationResult(
     val schema: DomainSchema?,
     val diagnostics: List<Diagnostic>,
 )
+
+data class DomainEnum(
+    val name: String,
+    val values: Map<String, Int>,
+    val position: SourcePosition,
+)
+
+fun DomainField.kotlinType(): String =
+    when (primitive) {
+        DomainPrimitive.LONG -> "Long"
+        DomainPrimitive.STRING -> "String"
+        DomainPrimitive.ENUM -> semanticType.split('.').joinToString(".") { "`$it`" }
+        DomainPrimitive.COMPOSITE -> (semanticType + "Pojo").split('.').joinToString(".") { "`$it`" }
+        DomainPrimitive.GROUP -> "List<" + (semanticType + "Pojo").split('.').joinToString(".") { "`$it`" } + ">"
+    }
