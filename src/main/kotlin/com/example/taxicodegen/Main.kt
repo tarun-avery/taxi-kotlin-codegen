@@ -15,8 +15,8 @@ fun runCli(
     out: PrintStream,
     err: PrintStream,
 ): Int {
-    if (args.size != 1 && !(args.size == 3 && args[1] == "--output")) {
-        err.println("Usage: taxi-kotlin-codegen <schema.taxi> [--output <directory>]")
+    if (args.size != 1 && !(args.size == 3 && args[1] in setOf("--output", "--codecs"))) {
+        err.println("Usage: taxi-kotlin-codegen <schema.taxi> [--output|--codecs <directory>]")
         return 2
     }
     val source =
@@ -30,7 +30,7 @@ fun runCli(
     result.diagnostics.forEach(err::println)
     val schema = result.schema ?: return 1
     if (args.size == 3) {
-        val generated = PojoGenerator().generate(schema)
+        val generated = if (args[1] == "--codecs") CodecGenerator().generate(schema) else PojoGenerator().generate(schema)
         generated.diagnostics.forEach(err::println)
         if (generated.diagnostics.isNotEmpty()) return 1
         try {

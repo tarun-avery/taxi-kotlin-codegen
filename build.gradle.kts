@@ -45,7 +45,7 @@ val generatePojos by tasks.registering(JavaExec::class) {
     mainClass.set("com.example.taxicodegen.MainKt")
     inputs.file("examples/order.taxi")
     outputs.dir(generatedSources)
-    args("examples/order.taxi", "--output", generatedSources.get().asFile.absolutePath)
+    args("examples/order.taxi", "--codecs", generatedSources.get().asFile.absolutePath)
     doFirst {
         delete(generatedSources)
     }

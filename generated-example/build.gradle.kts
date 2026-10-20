@@ -12,9 +12,20 @@ kotlin {
 
 ktlint {
     version.set("1.8.0")
+    filter {
+        exclude {
+            it.file.toPath().startsWith(
+                layout.buildDirectory
+                    .get()
+                    .asFile
+                    .toPath(),
+            )
+        }
+    }
 }
 
 dependencies {
+    implementation("org.agrona:agrona:2.7.0")
     testImplementation(kotlin("test-junit5"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
 }
@@ -25,4 +36,5 @@ tasks.compileKotlin {
 
 tasks.test {
     useJUnitPlatform()
+    jvmArgs("--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED")
 }
