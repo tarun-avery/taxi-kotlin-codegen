@@ -35,3 +35,22 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
+val generatedSources = project(":generated-example").layout.buildDirectory.dir("generated/sources/taxi/main/kotlin")
+
+val generatePojos by tasks.registering(JavaExec::class) {
+    group = "code generation"
+    description = "Generate Kotlin POJOs for the example Taxi schema."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("com.example.taxicodegen.MainKt")
+    inputs.file("examples/order.taxi")
+    outputs.dir(generatedSources)
+    args("examples/order.taxi", "--output", generatedSources.get().asFile.absolutePath)
+    doFirst {
+        delete(generatedSources)
+    }
+}
+
+tasks.named("check") {
+    dependsOn(":generated-example:check")
+}

@@ -15,8 +15,8 @@ fun runCli(
     out: PrintStream,
     err: PrintStream,
 ): Int {
-    if (args.size != 1) {
-        err.println("Usage: taxi-kotlin-codegen <schema.taxi>")
+    if (args.size != 1 && !(args.size == 3 && args[1] == "--output")) {
+        err.println("Usage: taxi-kotlin-codegen <schema.taxi> [--output <directory>]")
         return 2
     }
     val source =
@@ -29,6 +29,24 @@ fun runCli(
     val result = TaxiCompilerAdapter().compile(source, args[0])
     result.diagnostics.forEach(err::println)
     val schema = result.schema ?: return 1
+    if (args.size == 3) {
+        val generated = PojoGenerator().generate(schema)
+        generated.diagnostics.forEach(err::println)
+        if (generated.diagnostics.isNotEmpty()) return 1
+        try {
+            val outputDirectory = Path.of(args[2])
+            generated.sources.forEach { source ->
+                val destination = outputDirectory.resolve(source.relativePath)
+                Files.createDirectories(destination.parent)
+                Files.writeString(destination, source.content)
+                out.println("Generated ${source.relativePath}")
+            }
+        } catch (exception: IOException) {
+            err.println("Cannot write generated sources: ${exception.message}")
+            return 2
+        }
+        return 0
+    }
     schema.messages.forEach { message ->
         out.println("model ${message.name}")
         message.annotations.forEach { out.println("  @${it.name} ${it.parameters}") }

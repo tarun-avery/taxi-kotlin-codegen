@@ -18,3 +18,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "taxi-kotlin-codegen"
+
+include("generated-example")

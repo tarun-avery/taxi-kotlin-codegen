@@ -64,10 +64,10 @@ Do not add a trading engine, frontend, Spring service, or Aeron Cluster unless r
 
 ## Commits
 
-- Never create a commit or push until the user has reviewed the current changes
-  and explicitly approved the specific commit or push. This applies even if the
-  user previously authorized a different commit or push.
-- After making changes, leave them uncommitted and present the diff for review.
-- Once the user approves, use a short imperative commit subject and keep each
-  commit focused. Review the staged diff and exclude credentials, generated
-  files, and runtime data before committing.
+- Project-specific exception authorized by the user: implement the plan milestone
+  by milestone, verify each milestone, commit it, and continue without requesting
+  approval for each commit. This overrides the global review-before-commit rule
+  for this project only while working through this plan.
+- Keep one focused commit per milestone and report checks and limitations.
+- Review the staged diff and exclude credentials, generated files, local IDE
+  state, and runtime data before committing. Do not push unless requested.

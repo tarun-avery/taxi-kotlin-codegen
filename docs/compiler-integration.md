@@ -17,7 +17,8 @@ semantic type name, Long primitive mapping, nullability, annotations, and source
 position. Message annotations and positions are also retained. Annotation parameter
 keys are sorted. Built-in Taxi declarations are excluded from the domain output.
 
-The adapter does not calculate offsets, assign IDs, or generate Kotlin/SBE code.
+The adapter does not calculate offsets or assign IDs. A separate PojoGenerator
+now emits Kotlin data classes from this representation. SBE code is still planned.
 The example's typed Message and Field annotations are metadata only at this stage.
 Scalar declarations are resolved to field types, not emitted as separate domain
 entities; scalar-level annotations are not propagated to fields in this milestone.
@@ -51,4 +52,5 @@ libraries. These are distinct from schema diagnostics; they are not suppressed.
 `./gradlew clean build` runs tests and ktlint checks. Tests exercise the actual Taxi
 compiler, the example schema, semantic inheritance, nullability, annotations,
 source diagnostics, unsupported constructs, deterministic ordering, and CLI usage.
-No SBE conformance or performance claim is made in this milestone.
+The generated-example module compiles the generated OrderPojo and tests its value
+semantics. No SBE conformance or performance claim is made in this milestone.
