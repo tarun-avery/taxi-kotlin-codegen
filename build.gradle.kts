@@ -1,0 +1,37 @@
+plugins {
+    application
+    kotlin("jvm") version "2.4.21"
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
+}
+
+group = "com.example.taxicodegen"
+version = "0.1.0-SNAPSHOT"
+
+kotlin {
+    jvmToolchain(25)
+}
+
+ktlint {
+    version.set("1.8.0")
+}
+
+tasks.named("check") {
+    dependsOn("ktlintCheck")
+}
+
+application {
+    mainClass.set("com.example.taxicodegen.MainKt")
+}
+
+dependencies {
+    implementation("org.taxilang:compiler:1.73.0") {
+        exclude(group = "ch.qos.logback", module = "logback-classic")
+    }
+    runtimeOnly("org.slf4j:slf4j-nop:2.0.17")
+    testImplementation(kotlin("test-junit5"))
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
+}
+
+tasks.test {
+    useJUnitPlatform()
+}

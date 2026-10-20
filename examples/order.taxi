@@ -1,0 +1,26 @@
+namespace trading
+
+annotation Message {
+    id: Int
+    schemaId: Int
+    version: Int
+}
+
+annotation Field {
+    id: Int
+}
+
+type OrderId inherits Long
+// Price is an integer count of ten-thousandths of a currency unit.
+type Price inherits Long
+type Quantity inherits Long
+
+@Message(id = 1, schemaId = 1, version = 0)
+model Order {
+    @Field(id = 1)
+    orderId: OrderId
+    @Field(id = 2)
+    price: Price
+    @Field(id = 3)
+    quantity: Quantity
+}
