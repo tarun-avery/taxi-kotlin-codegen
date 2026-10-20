@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2016/sbe"
+                   package="reference" id="1" version="0" semanticVersion="1.0"
+                   byteOrder="littleEndian">
+    <types>
+        <composite name="messageHeader">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <composite name="groupSizeEncoding">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="numInGroup" primitiveType="uint16"/>
+        </composite>
+        <composite name="varStringEncoding">
+            <type name="length" primitiveType="uint32" maxValue="2147483647"/>
+            <type name="varData" primitiveType="uint8" length="0" characterEncoding="UTF-8"/>
+        </composite>
+        <enum name="Side" encodingType="uint8"><validValue name="Buy">1</validValue><validValue name="Sell">2</validValue></enum>
+        <composite name="Quote"><type name="price" primitiveType="int64"/><type name="quantity" primitiveType="int64"/></composite>
+    </types>
+    <sbe:message name="Order" id="1" blockLength="24">
+        <field name="orderId" id="1" type="int64"/>
+        <field name="price" id="2" type="int64"/>
+        <field name="quantity" id="3" type="int64"/>
+    </sbe:message>
+    <sbe:message name="Trade" id="2" blockLength="33">
+        <field name="id" id="1" type="int64"/>
+        <field name="side" id="2" type="Side" presence="optional"/>
+        <field name="quote" id="3" type="Quote"/>
+        <field name="clientId" id="4" type="int64" presence="optional"/>
+        <group name="legs" id="5" dimensionType="groupSizeEncoding" blockLength="16">
+            <field name="id" id="1" type="int64"/>
+            <field name="quantity" id="2" type="int64"/>
+        </group>
+        <data name="note" id="6" type="varStringEncoding"/>
+    </sbe:message>
+</sbe:messageSchema>

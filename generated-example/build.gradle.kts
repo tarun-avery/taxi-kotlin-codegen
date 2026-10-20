@@ -7,9 +7,9 @@ plugins {
 kotlin {
     jvmToolchain(25)
     sourceSets.main {
-        kotlin.srcDir(layout.buildDirectory.dir("generated/sources/taxi/main/kotlin"))
-        kotlin.srcDir(layout.buildDirectory.dir("generated/sources/evolution/main/kotlin"))
-        kotlin.srcDir(layout.buildDirectory.dir("generated/sources/rich/main/kotlin"))
+        kotlin.srcDir(rootProject.tasks.named("generatePojos"))
+        kotlin.srcDir(rootProject.tasks.named("generateEvolution"))
+        kotlin.srcDir(rootProject.tasks.named("generateRich"))
     }
 }
 
@@ -51,3 +51,27 @@ application {
     mainClass.set("com.example.taxicodegen.AeronDemoKt")
     applicationDefaultJvmArgs = listOf("--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED")
 }
+
+val referenceTool by configurations.creating
+
+dependencies {
+    referenceTool("uk.co.real-logic:sbe-tool:1.41.0")
+}
+
+val referenceSources = layout.buildDirectory.dir("generated/reference")
+val generateReference by tasks.registering(JavaExec::class) {
+    description = "Generate independent SBE test-oracle codecs; never used by production generation."
+    classpath = referenceTool
+    mainClass.set("uk.co.real_logic.sbe.SbeTool")
+    inputs.file("src/test/resources/reference.xml")
+    outputs.dir(referenceSources)
+    args(file("src/test/resources/reference.xml").absolutePath)
+    systemProperty("sbe.output.dir", referenceSources.get().asFile.absolutePath)
+    doFirst { delete(referenceSources) }
+}
+
+sourceSets.test {
+    java.srcDir(generateReference)
+}
+tasks.compileTestKotlin { dependsOn(generateReference) }
+tasks.compileTestJava { dependsOn(generateReference) }

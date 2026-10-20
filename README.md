@@ -4,11 +4,12 @@ A learning project to generate Kotlin domain objects, buffer-backed flyweights,
 and SBE-compatible codecs from Taxi schemas. The aim is to compare ownership,
 allocation, serialization, and schema evolution using the same domain definition.
 
-**Status:** milestones 1–6 implemented. Taxi generates Kotlin data classes,
+**Status:** milestones 1–7 implemented within the supported subset. Taxi generates Kotlin data classes,
 fixed-layout SBE encoders/decoders, and buffer-backed flyweights. The build
 compiles the generated Order example and checks its binary fixture. The Aeron IPC demo and bidirectional version 0/1 compatibility tests run in the
 build. Enums, fixed composites, fixed-entry groups, and UTF-8 data are supported;
-benchmarks are still planned.
+official SBE reference-codec interoperability checks and JMH benchmarks are included.
+See [benchmark results and limitations](docs/benchmarks.md).
 
 ## Getting started
 
@@ -32,7 +33,7 @@ resolved fields, including `orderId: trading.OrderId -> LONG`. Prices use intege
 units of one ten-thousandth of a currency unit.
 
 `build` runs the adapter tests and formatting checks. Compilation errors include
-file, line, and column. The tool reads the schema without modifying it and writes sources only when `--output` is supplied. The first build downloads Taxi from its official Orbital
+file, line, and column. The tool reads the schema without modifying it and writes sources only when `--output` or `--codecs` is supplied. The first build downloads Taxi from its official Orbital
 release repository as well as dependencies from Maven Central.
 
 Supported data includes Long fields and semantic subtypes, nullable Longs/enums,

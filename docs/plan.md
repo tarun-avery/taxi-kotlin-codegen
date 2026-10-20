@@ -1,6 +1,7 @@
 # Implementation plan
 
-Milestones 1–6 are implemented. Milestone 7 is planned.
+Milestones 1–7 are implemented within the documented wire subset.
+See [benchmarks](benchmarks.md) for measurements and remaining performance work.
 See [compiler integration](compiler-integration.md) for the current scope.
 
 ## Objective
@@ -27,7 +28,7 @@ SBE compiler in the production generation path.
 6. Rich types: add enums, nullable primitives, composites, groups, and variable
    data one feature at a time with explicit wire rules and compatibility tests.
 7. Benchmarks: JMH comparisons of equivalent field reads, materialization, and
-   encoding, reporting allocations and environment. Measure Aeron separately.
+   encoding, reporting allocations and environment. Measure the Aeron demo lifecycle separately; steady-state transport latency remains future work.
 
 ## Architecture and validation
 
