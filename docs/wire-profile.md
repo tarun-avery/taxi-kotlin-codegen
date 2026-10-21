@@ -89,3 +89,23 @@ there is only one layout implementation. `note()` allocates a String;
 `copyNoteTo(target, offset)` copies bytes directly without constructing one.
 `toPojo()` deliberately allocates an owned object graph, including lists and
 nested records. Do not describe these materialization paths as allocation-free.
+
+## Required full-range Long fields (0.2.0)
+
+The fixed Long profile accepts an explicit field annotation `annotation FullRange {}`
+and `@FullRange` on a required Long field. The Kotlin API remains Long. Its wire
+representation is a nine-byte SBE fixed composite: a required uint8 tag (0 or 1),
+then a required int64 raw value. Tag 0 means the raw value; tag 1 means Long.MIN_VALUE
+and requires raw value 0. The raw slot never contains the reserved int64 null.
+This preserves every signed 64-bit value without changing SBE primitive null rules.
+Noncanonical tags/values are rejected on access. Offsets include the extra tag byte.
+Optional full-range fields and the rich profile are rejected explicitly.
+
+Existing fields keep their eight-byte encoding. Adding/removing @FullRange on an
+existing field is incompatible and rejected by SchemaCompatibility. Reference-codec
+interoperability and an independent byte fixture cover this composite, including
+both signed boundaries. It costs one byte per full-range field; no performance
+improvement is claimed.
+
+The CLI can enforce a preserved fixed-profile baseline:
+`./gradlew :run --args="current.taxi --check-compatible baseline.taxi"`.

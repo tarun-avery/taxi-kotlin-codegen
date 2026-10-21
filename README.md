@@ -4,6 +4,9 @@ A learning project to generate Kotlin domain objects, buffer-backed flyweights,
 and SBE-compatible codecs from Taxi schemas. The aim is to compare ownership,
 allocation, serialization, and schema evolution using the same domain definition.
 
+The reusable generator version is `0.2.0`. Required full-range Long fields can opt
+into `@FullRange`; see the wire profile for its nine-byte composite encoding.
+
 **Status:** milestones 1–7 implemented within the supported subset. Taxi generates Kotlin data classes,
 fixed-layout SBE encoders/decoders, and buffer-backed flyweights. The build
 compiles the generated Order example and checks its binary fixture. The Aeron IPC demo and bidirectional version 0/1 compatibility tests run in the
@@ -23,7 +26,7 @@ use IntelliJ’s **Sync Gradle Changes** action to refresh its dependencies.
 From the project root:
 
 ```sh
-./gradlew run --args=examples/order.taxi
+./gradlew :run --args=examples/order.taxi
 ./gradlew generatePojos
 ./gradlew :generated-example:run
 ./gradlew clean build

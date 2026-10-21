@@ -1,0 +1,12 @@
+namespace fullrange
+annotation Message { id: Int schemaId: Int version: Int }
+annotation Field { id: Int }
+annotation FullRange {}
+type CounterValue inherits Long
+@Message(id = 3, schemaId = 1, version = 0)
+model Counter {
+    @Field(id = 1) @FullRange
+    value: CounterValue
+    @Field(id = 2)
+    sequence: Long
+}

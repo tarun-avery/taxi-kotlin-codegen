@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.example.taxicodegen"
-version = "0.1.0-SNAPSHOT"
+version = "0.2.0"
 
 kotlin {
     jvmToolchain(25)
@@ -88,4 +88,15 @@ val generateRich by tasks.registering(JavaExec::class) {
     outputs.dir(richSources)
     args("examples/trade.taxi", "--codecs", richSources.get().asFile.absolutePath)
     doFirst { delete(richSources) }
+}
+
+val fullRangeSources = project(":generated-example").layout.buildDirectory.dir("generated/sources/fullRange/main/kotlin")
+val generateFullRange by tasks.registering(JavaExec::class) {
+    group = "code generation"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("com.example.taxicodegen.MainKt")
+    inputs.file("examples/full-range.taxi")
+    outputs.dir(fullRangeSources)
+    args("examples/full-range.taxi", "--codecs", fullRangeSources.get().asFile.absolutePath)
+    doFirst { delete(fullRangeSources) }
 }

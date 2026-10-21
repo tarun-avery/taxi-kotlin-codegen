@@ -15,8 +15,8 @@ fun runCli(
     out: PrintStream,
     err: PrintStream,
 ): Int {
-    if (args.size != 1 && !(args.size == 3 && args[1] in setOf("--output", "--codecs"))) {
-        err.println("Usage: taxi-kotlin-codegen <schema.taxi> [--output|--codecs <directory>]")
+    if (args.size != 1 && !(args.size == 3 && args[1] in setOf("--output", "--codecs", "--check-compatible"))) {
+        err.println("Usage: taxi-kotlin-codegen <schema.taxi> [--output|--codecs <directory> | --check-compatible <baseline.taxi>]")
         return 2
     }
     val source =
@@ -29,6 +29,20 @@ fun runCli(
     val result = TaxiCompilerAdapter().compile(source, args[0])
     result.diagnostics.forEach(err::println)
     val schema = result.schema ?: return 1
+    if (args.size == 3 && args[1] == "--check-compatible") {
+        val previous =
+            try {
+                TaxiCompilerAdapter().compile(Files.readString(Path.of(args[2])), args[2])
+            } catch (exception: IOException) {
+                err.println("Cannot read ${args[2]}: ${exception.message}")
+                return 2
+            }
+        previous.diagnostics.forEach(err::println)
+        val baseline = previous.schema ?: return 1
+        val diagnostics = SchemaCompatibility().check(baseline, schema)
+        diagnostics.forEach(err::println)
+        return if (diagnostics.isEmpty()) 0 else 1
+    }
     if (args.size == 3) {
         val generated = if (args[1] == "--codecs") CodecGenerator().generate(schema) else PojoGenerator().generate(schema)
         generated.diagnostics.forEach(err::println)

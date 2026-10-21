@@ -28,7 +28,8 @@ class SchemaCompatibility {
                 val next = after.fields.getOrNull(index)
                 if (next == null || next.id != field.id || next.offset != field.offset ||
                     next.field.name != field.field.name || next.field.primitive != field.field.primitive ||
-                    next.field.nullable != field.field.nullable || next.sinceVersion != field.sinceVersion
+                    next.field.nullable != field.field.nullable || next.sinceVersion != field.sinceVersion ||
+                    next.fullRange != field.fullRange
                 ) {
                     reject("Existing field ${field.field.name} was removed or changed incompatibly.")
                 }

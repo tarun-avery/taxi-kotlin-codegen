@@ -26,22 +26,46 @@ class CodecGenerator {
             }
         val setters =
             fields.joinToString("\n") { field ->
+                val write =
+                    if (field.fullRange) {
+                        """
+                        buffer.putByte(offset + ${field.offset}, if (value == Long.MIN_VALUE) 1.toByte() else 0.toByte())
+                        buffer.putLong(offset + ${field.offset + 1}, if (value == Long.MIN_VALUE) 0L else value, ByteOrder.LITTLE_ENDIAN)
+                        """.trimIndent()
+                    } else {
+                        """
+                        require(value != Long.MIN_VALUE) { "Reserved SBE null value" }
+                        buffer.putLong(offset + ${field.offset}, ${if (field.field.nullable) "value ?: Long.MIN_VALUE" else "value"}, ByteOrder.LITTLE_ENDIAN)
+                        """.trimIndent()
+                    }
                 """
                 fun `${field.field.name}`(value: Long${if (field.field.nullable) "?" else ""}): ${name}Encoder {
-                    require(value != Long.MIN_VALUE) { "Reserved SBE null value" }
-                    buffer.putLong(offset + ${field.offset}, ${if (field.field.nullable) "value ?: Long.MIN_VALUE" else "value"}, ByteOrder.LITTLE_ENDIAN)
+                    $write
                     return this
                 }
                 """.trimIndent()
             }
         val getters =
             fields.joinToString("\n") { field ->
+                val read =
+                    if (field.fullRange) {
+                        """
+                        val tag = buffer.getByte(offset + ${field.offset}).toInt()
+                        val value = buffer.getLong(offset + ${field.offset + 1}, ByteOrder.LITTLE_ENDIAN)
+                        require(tag in 0..1 && value != Long.MIN_VALUE && (tag == 0 || value == 0L)) { "Invalid full-range Long encoding" }
+                        return if (tag == 1) Long.MIN_VALUE else value
+                        """.trimIndent()
+                    } else {
+                        """
+                        val value = buffer.getLong(offset + ${field.offset}, ByteOrder.LITTLE_ENDIAN)
+                        ${if (field.field.nullable) "if (value == Long.MIN_VALUE) return null" else "require(value != Long.MIN_VALUE) { \"Required field contains SBE null\" }"}
+                        return value
+                        """.trimIndent()
+                    }
                 """
                 fun `${field.field.name}`(): Long${if (field.field.nullable) "?" else ""} {
                     ${if (field.sinceVersion > 0) "if (version < ${field.sinceVersion}) return null" else ""}
-                    val value = buffer.getLong(offset + ${field.offset}, ByteOrder.LITTLE_ENDIAN)
-                    ${if (field.field.nullable) "if (value == Long.MIN_VALUE) return null" else "require(value != Long.MIN_VALUE) { \"Required field contains SBE null\" }"}
-                    return value
+                    $read
                 }
                 """.trimIndent()
             }
@@ -53,7 +77,7 @@ class CodecGenerator {
         val encode = fields.joinToString("\n") { "        `${it.field.name}`(value.`${it.field.name}`)" }
         val lengthChecks =
             fields.joinToString("\n") {
-                "        require(actingVersion < ${it.sinceVersion} || actingBlockLength >= ${it.offset + 8}) { \"Truncated versioned root block\" }"
+                "        require(actingVersion < ${it.sinceVersion} || actingBlockLength >= ${it.offset + it.encodedLength}) { \"Truncated versioned root block\" }"
             }
         val content =
             """

@@ -5,7 +5,10 @@ data class WireField(
     val id: Int,
     val offset: Int,
     val sinceVersion: Int = 0,
-)
+    val fullRange: Boolean = false,
+) {
+    val encodedLength: Int get() = if (fullRange) 9 else 8
+}
 
 data class WireMessage(
     val model: DomainMessage,
@@ -14,7 +17,7 @@ data class WireMessage(
     val version: Int,
     val fields: List<WireField>,
 ) {
-    val blockLength: Int get() = fields.size * 8
+    val blockLength: Int get() = fields.sumOf { it.encodedLength }
 }
 
 data class LayoutResult(
@@ -53,21 +56,27 @@ class WireLayoutPlanner {
             schema.messages.map { model ->
                 val metadata = annotation(model.annotations, "Message", model.position)
                 val version = number(metadata, "version", model.position)
+                var offset = 0
                 val fields =
-                    model.fields.mapIndexed { index, field ->
+                    model.fields.map { field ->
                         val since = field.annotations.filter { it.name.substringAfterLast('.') == "Since" }
                         if (since.size > 1) errors += Diagnostic(field.position, "Duplicate @Since annotation.")
                         val sinceVersion = if (since.isEmpty()) 0 else number(since.first(), "version", field.position)
                         if (sinceVersion > version) errors += Diagnostic(field.position, "Field version exceeds schema version.")
                         if (sinceVersion > 0 && !field.nullable) errors += Diagnostic(field.position, "Added fields must be optional.")
                         val fieldMetadata = annotation(field.annotations, "Field", field.position)
-                        WireField(field, number(fieldMetadata, "id", field.position), index * 8, sinceVersion)
+                        val fullRange = field.annotations.filter { it.name.substringAfterLast('.') == "FullRange" }
+                        if (fullRange.size > 1 || (fullRange.isNotEmpty() && field.nullable)) {
+                            errors += Diagnostic(field.position, "@FullRange requires a non-null Long field and cannot be repeated.")
+                        }
+                        WireField(field, number(fieldMetadata, "id", field.position), offset, sinceVersion, fullRange.isNotEmpty())
+                            .also { offset += it.encodedLength }
                     }
                 if (fields.zipWithNext().any { (a, b) -> a.sinceVersion > b.sinceVersion }) {
                     errors += Diagnostic(model.position, "Versioned fields must be appended in version order.")
                 }
                 if (fields.map { it.id }.distinct().size != fields.size) errors += Diagnostic(model.position, "Duplicate SBE field IDs.")
-                if (fields.size * 8 > 65534) errors += Diagnostic(model.position, "Root block exceeds uint16 length.")
+                if (offset > 65534) errors += Diagnostic(model.position, "Root block exceeds uint16 length.")
                 WireMessage(
                     model,
                     number(metadata, "id", model.position),

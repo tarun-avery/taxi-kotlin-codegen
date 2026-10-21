@@ -65,6 +65,9 @@ class RichLayoutPlanner {
                     if (field.nullable && field.primitive !in setOf(DomainPrimitive.LONG, DomainPrimitive.ENUM)) {
                         reject(model, "Only primitive and enum fields may be nullable.")
                     }
+                    if (field.annotations.any { it.name.substringAfterLast('.') == "FullRange" }) {
+                        reject(model, "@FullRange is supported only in the fixed Long profile.")
+                    }
                     val size =
                         when (field.primitive) {
                             DomainPrimitive.LONG -> {

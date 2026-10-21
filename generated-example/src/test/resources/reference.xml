@@ -19,6 +19,10 @@
         </composite>
         <enum name="Side" encodingType="uint8"><validValue name="Buy">1</validValue><validValue name="Sell">2</validValue></enum>
         <composite name="Quote"><type name="price" primitiveType="int64"/><type name="quantity" primitiveType="int64"/></composite>
+        <composite name="FullRangeLong">
+            <type name="tag" primitiveType="uint8" minValue="0" maxValue="1"/>
+            <type name="rawValue" primitiveType="int64"/>
+        </composite>
     </types>
     <sbe:message name="Order" id="1" blockLength="24">
         <field name="orderId" id="1" type="int64"/>
@@ -35,5 +39,9 @@
             <field name="quantity" id="2" type="int64"/>
         </group>
         <data name="note" id="6" type="varStringEncoding"/>
+    </sbe:message>
+    <sbe:message name="Counter" id="3" blockLength="17">
+        <field name="value" id="1" type="FullRangeLong"/>
+        <field name="sequence" id="2" type="int64"/>
     </sbe:message>
 </sbe:messageSchema>

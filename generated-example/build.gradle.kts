@@ -11,6 +11,7 @@ kotlin {
         kotlin.srcDir(rootProject.tasks.named("generatePojos"))
         kotlin.srcDir(rootProject.tasks.named("generateEvolution"))
         kotlin.srcDir(rootProject.tasks.named("generateRich"))
+        kotlin.srcDir(rootProject.tasks.named("generateFullRange"))
     }
 }
 
@@ -45,6 +46,7 @@ tasks.compileKotlin {
         rootProject.tasks.named("generatePojos"),
         rootProject.tasks.named("generateEvolution"),
         rootProject.tasks.named("generateRich"),
+        rootProject.tasks.named("generateFullRange"),
     )
 }
 
