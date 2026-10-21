@@ -51,7 +51,10 @@ guarantee. Short runs and a developer laptop provide exploratory evidence only.
 ## Recorded exploratory results
 
 Measured 20 October 2026 on Apple M1, macOS 27.0.1, Homebrew OpenJDK
-64-Bit Server VM 25.0.2, JMH 1.37, Agrona 2.7.0, and Aeron 1.53.3.
+64-Bit Server VM 25.0.2, Kotlin 2.4.21 targeting JVM 25, JMH 1.37,
+Agrona 2.7.0, and Aeron 1.53.3. These historical measurements predate the
+IDE compatibility change to Kotlin 2.2.21 / JVM 24; rerun the commands above
+when comparing performance with the current build.
 Values below are JMH means; ± is its reported 99.9% confidence error, not a
 latency percentile. Throughput is from separate runs, converted from ops/ns to
 million operations/second. Allocation is from average-time runs.

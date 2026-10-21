@@ -15,7 +15,10 @@ See [benchmark results and limitations](docs/benchmarks.md).
 
 Use JDK 25 and the included Gradle wrapper. Internet access is needed for the
 first dependency download. Open this directory in IntelliJ IDEA as a Gradle
-project and select JDK 25 for the Gradle JVM.
+project and select JDK 25 for the Gradle JVM. Kotlin is pinned to 2.2.21
+for compatibility with IntelliJ IDEA 2025.2.4. Java and Kotlin emit JVM 24
+bytecode while using JDK 25 to build and run. After changing build configuration,
+use IntelliJ’s **Sync Gradle Changes** action to refresh its dependencies.
 
 From the project root:
 

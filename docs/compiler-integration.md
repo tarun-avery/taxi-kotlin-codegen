@@ -54,3 +54,12 @@ compiler, the example schema, semantic inheritance, nullability, annotations,
 source diagnostics, unsupported constructs, deterministic ordering, and CLI usage.
 The generated-example module compiles the generated OrderPojo and tests its value
 semantics. No SBE conformance or performance claim is made in this milestone.
+
+## Runtime dependencies
+
+The CLI compiles local source strings and excludes Taxi’s remote package manager.
+Git, HTTP repository clients, Maven resolution, and Reactor are not needed for
+this workflow and are not shipped in the generator runtime. Adding remote package
+resolution would require deliberately restoring and reviewing those dependencies.
+Commons Lang is constrained to 3.18.0 to address
+[CVE-2025-48924](https://commons.apache.org/proper/commons-lang/security.html).

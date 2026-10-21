@@ -1,16 +1,22 @@
 plugins {
     application
-    kotlin("jvm") version "2.4.21"
+    kotlin("jvm") version "2.2.21"
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
 }
 
 kotlin {
     jvmToolchain(25)
+    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_24)
     sourceSets.main {
         kotlin.srcDir(rootProject.tasks.named("generatePojos"))
         kotlin.srcDir(rootProject.tasks.named("generateEvolution"))
         kotlin.srcDir(rootProject.tasks.named("generateRich"))
     }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_24
+    targetCompatibility = JavaVersion.VERSION_24
 }
 
 ktlint {
