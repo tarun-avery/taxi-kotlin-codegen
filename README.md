@@ -1,69 +1,115 @@
 # Taxi to Kotlin Code Generator
 
-A learning project to generate Kotlin domain objects, buffer-backed flyweights,
-and SBE-compatible codecs from Taxi schemas. The aim is to compare ownership,
-allocation, serialization, and schema evolution using the same domain definition.
+Generate Kotlin domain objects, buffer-backed flyweights, and SBE-compatible
+encoders and decoders from Taxi schemas. A shared definition keeps domain meaning
+and binary layouts together, and supports comparisons of ownership, allocation,
+serialization, and schema evolution.
 
-The reusable generator version is `0.2.0`. Required full-range Long fields can opt
-into `@FullRange`; see the wire profile for its nine-byte composite encoding.
+**Status:** version `0.2.0`; milestones 1–7 are implemented within the supported
+subset. Generated examples compile in the build. Tests cover Aeron IPC, fixed-field
+version 0/1 evolution, independently specified bytes, and interoperability with
+reference SBE codecs. JMH benchmarks are included; see [results and limitations](docs/benchmarks.md).
+The cluster-state-machine project consumes this generator at build time to encode
+add, subtract, multiply, and divide commands and their results.
 
-**Status:** milestones 1–7 implemented within the supported subset. Taxi generates Kotlin data classes,
-fixed-layout SBE encoders/decoders, and buffer-backed flyweights. The build
-compiles the generated Order example and checks its binary fixture. The Aeron IPC demo and bidirectional version 0/1 compatibility tests run in the
-build. Enums, fixed composites, fixed-entry groups, and UTF-8 data are supported;
-official SBE reference-codec interoperability checks and JMH benchmarks are included.
-See [benchmark results and limitations](docs/benchmarks.md).
+## Requirements and setup
 
-## Getting started
+Use JDK 25, Git, and the included Gradle wrapper. No separate Gradle installation
+is needed. The first build downloads dependencies from Maven Central and Taxi's
+Orbital release repository. In IntelliJ, import the root Gradle project with JDK 25.
+Kotlin is pinned to 2.2.21; generator Java/Kotlin bytecode targets JVM 24.
 
-Use JDK 25 and the included Gradle wrapper. Internet access is needed for the
-first dependency download. Open this directory in IntelliJ IDEA as a Gradle
-project and select JDK 25 for the Gradle JVM. Kotlin is pinned to 2.2.21
-for compatibility with IntelliJ IDEA 2025.2.4. Java and Kotlin emit JVM 24
-bytecode while using JDK 25 to build and run. After changing build configuration,
-use IntelliJ’s **Sync Gradle Changes** action to refresh its dependencies.
-
-From the project root:
+From the repository root:
 
 ```sh
 ./gradlew :run --args=examples/order.taxi
 ./gradlew generatePojos
 ./gradlew :generated-example:run
+```
+
+The first command prints `model trading.Order` and resolved semantic fields,
+including `orderId: trading.OrderId -> LONG`. The IPC example prints:
+
+```text
+Received through Aeron IPC: OrderPojo(orderId=123, price=100500, quantity=10)
+```
+
+The IPC example creates a temporary embedded driver, needs no external service,
+and closes its resources/removes temporary data on exit. Each exchange has a
+ten-second deadline. Prices use integer ten-thousandths of a currency unit.
+Use `:run` for the generator CLI so Gradle does not also select other projects'
+application tasks.
+
+## Generate and check schemas
+
+```sh
+./gradlew :run --args="examples/order.taxi --codecs build/generated/order"
+./gradlew :run --args="examples/order-v1.taxi --check-compatible examples/order.taxi"
+./gradlew generateFullRange
+```
+
+`--codecs` writes POJOs, encoders, decoders, and flyweights. `--output` writes only
+POJOs. The CLI reads the source without changing it; output options overwrite
+matching generated files but do not delete stale files. `--check-compatible`
+compares a current fixed-profile schema against a preserved baseline and fails on
+incompatible changes. Diagnostics include source file, line, and column.
+
+The supported subset includes semantic Long types, nullable Longs/enums, explicit
+numeric enums, fixed composites, fixed-entry groups, and UTF-8 data. Fixed Long
+messages support append-only optional-field evolution. The rich profile is version
+0 only. Unsupported constructs fail explicitly.
+
+Ordinary Long fields reserve `Long.MIN_VALUE` as null. A required fixed-profile
+field annotated `@FullRange` instead uses a nine-byte composite to preserve every
+signed 64-bit value. This is how the counter's quantities and counts retain their
+full range. Nullable full-range fields and rich-profile full-range fields are
+unsupported. Semantic Long types currently generate plain Kotlin `Long`
+properties, not distinct Kotlin value classes.
+
+See [compiler integration](docs/compiler-integration.md) and the
+[wire profile and codec APIs](docs/wire-profile.md) for precise encoding,
+buffer lifetimes, and evolution rules.
+
+## Cluster integration
+
+Keep this repository next to `cluster-state-machine`, or configure that consumer
+with `-PtaxiCodegenDir=/path/to/taxi-kotlin-codegen`. The consumer's
+`gradle.properties` pins this generator's version and exact Git revision. Its
+build rejects changed generator build inputs; README and `docs/` edits are allowed.
+Generated counter sources remain under the consumer's `build/` directory. The
+Taxi compiler and generator are not runtime dependencies of the cluster or gateway.
+
+To regenerate the integrated domain and verify compatibility, run from the cluster
+repository root:
+
+```sh
+./gradlew :counter-protocol:generateCounterCodecs
+./gradlew :counter-protocol:checkCounterSchema
+./gradlew :cluster:integrationTest
+```
+
+The consumer owns the counter schema and its preserved baseline. Its README and
+`docs/taxi-integration.md` describe starting the cluster, gateway, and browser UI.
+This generator is a build-time tool and does not need a separate running server.
+
+## Verification and generated data
+
+```sh
 ./gradlew clean build
 ./gradlew ktlintFormat
 ./gradlew ktlintCheck
 ```
 
-The example prints `model trading.Order`, its message annotation, and three
-resolved fields, including `orderId: trading.OrderId -> LONG`. Prices use integer
-units of one ten-thousandth of a currency unit.
+The build compiles generated examples, runs tests, and checks Kotlin formatting.
+It assembles benchmark applications but does not run JMH measurements. Generated
+sources are excluded from formatter mutation and are never committed.
 
-`build` runs the adapter tests and formatting checks. Compilation errors include
-file, line, and column. The tool reads the schema without modifying it and writes sources only when `--output` or `--codecs` is supplied. The first build downloads Taxi from its official Orbital
-release repository as well as dependencies from Maven Central.
+`generatePojos`, `generateEvolution`, `generateRich`, and `generateFullRange`
+replace their own generated directories under `generated-example/build/` when
+inputs change. Do not edit generated sources. `clean` removes build output;
+example Taxi schemas and preserved baselines remain intact. Buffer views borrow
+storage; materialize a POJO when data must outlive its buffer callback.
 
-Supported data includes Long fields and semantic subtypes, nullable Longs/enums,
-explicit numeric enums, fixed composites, fixed-entry groups, and UTF-8 strings.
-The rich-codec profile is version 0 only; fixed Long messages support append-only
-schema evolution. Unsupported constructs fail explicitly. See
-[compiler integration](docs/compiler-integration.md) and [wire profile](docs/wire-profile.md).
-
-See [the implementation plan](docs/plan.md) for milestones and the intended
-Order example. Contributors should read [AGENTS.md](AGENTS.md), reproduce the
-build, and follow its milestone commit workflow. For project
-questions or proposed changes, open a repository issue.
-
-Generated example sources live under `generated-example/build/generated/sources/taxi/main/kotlin`.
-The `generatePojos`, `generateEvolution`, and `generateRich` tasks replace their generated directories when its inputs change;
-never edit it by hand. `clean` removes build output. The CLI also accepts
-`--output <directory>` to write sources elsewhere; it overwrites matching generated
-filenames but does not remove stale files. Kotlin keywords are escaped, nullable
-Long fields become `Long?`, and unsupported names or empty data classes fail explicitly.
-
-See [the wire profile](docs/wire-profile.md) for the supported SBE subset and APIs.
-
-The IPC demo prints `Received through Aeron IPC: OrderPojo(orderId=123, price=100500, quantity=10)`.
-It launches an embedded driver in a unique system temporary directory, uses IPC
-only (no network port), and closes resources/removes that directory on exit.
-Each send/receive attempt has a ten-second deadline. Tests include a real IPC
-exchange. No external Aeron driver or configuration is required.
+For design details, see [the implementation plan](docs/plan.md). For contributions,
+read [AGENTS.md](AGENTS.md) and run the checks above. Use the repository's issue
+tracker for questions or bugs, including the schema, diagnostic, and JDK version.
