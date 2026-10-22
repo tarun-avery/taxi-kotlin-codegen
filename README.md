@@ -110,6 +110,7 @@ inputs change. Do not edit generated sources. `clean` removes build output;
 example Taxi schemas and preserved baselines remain intact. Buffer views borrow
 storage; materialize a POJO when data must outlive its buffer callback.
 
+For the diagrammed code walkthrough, see [generator flow](docs/flow.md).
 For design details, see [the implementation plan](docs/plan.md). For contributions,
 read [AGENTS.md](AGENTS.md) and run the checks above. Use the repository's issue
 tracker for questions or bugs, including the schema, diagnostic, and JDK version.
